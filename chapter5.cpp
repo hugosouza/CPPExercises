@@ -145,10 +145,13 @@ template<typename T> string bit_pattern(T c) {
 		T t1;
 		unsigned char t2[sizeof(T)];
 	} tt;
-
-	for (int i = sizeof(c)-1; i >= 0; i--) {
-		buff += (c & (1<<i)) ? "1" : "0";
-		if (!(i%4) && i > 0) buff += "-";
+	tt.t1 = c;
+	for (int j = 0; j < sizeof(tt.t2); j++) {
+		for (int i = 7; i >= 0; i--) {
+			buff += (tt.t2[j] & (1<<i)) ? "1" : "0";
+			if (i == 4) buff += "-";
+		}
+		if (j != sizeof(tt.t2)-1) buff += "-";
 	}
 	return buff;
 }
@@ -481,7 +484,8 @@ int main(int argc, char* argv[]) {
 	ex59_12();
 	i = getchar();
 
-
-	printf("-->[%s]\n", bit_pattern(0xDEADBEEF).c_str());
-	_sleep(2000);
+	double a = 100.0;
+	printf("-->[0x%x -- %s]\n", 0xDEADBEEF, bit_pattern(0xDEADBEEF).c_str());
+	printf("-->[%s]\n", bit_pattern(a).c_str());
+	_sleep(20000);
 }
