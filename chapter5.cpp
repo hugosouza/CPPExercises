@@ -146,12 +146,15 @@ template<typename T> string bit_pattern(T c) {
 		unsigned char t2[sizeof(T)];
 	} tt;
 	tt.t1 = c;
-	for (int j = 0; j < sizeof(tt.t2); j++) {
+	for (int j = sizeof(tt.t2)-1; j >= 0; j--) {
+		char b[255];
+		_snprintf_s(b, 255, 255, "[0x%x]", tt.t2[j]);
+		buff += b;
 		for (int i = 7; i >= 0; i--) {
 			buff += (tt.t2[j] & (1<<i)) ? "1" : "0";
 			if (i == 4) buff += "-";
 		}
-		if (j != sizeof(tt.t2)-1) buff += "-";
+		if (j != 0) buff += " -- ";
 	}
 	return buff;
 }
@@ -479,13 +482,13 @@ void ex59_12() {
 	countStrFromChar(x, y);
 }
 
-int main(int argc, char* argv[]) {
-	int i;
-	ex59_12();
-	i = getchar();
-
-	double a = 100.0;
-	printf("-->[0x%x -- %s]\n", 0xDEADBEEF, bit_pattern(0xDEADBEEF).c_str());
-	printf("-->[%s]\n", bit_pattern(a).c_str());
-	_sleep(20000);
-}
+//int main(int argc, char* argv[]) {
+//	int i;
+//	ex59_12();
+//	i = getchar();
+//
+//	double a = 100.0;
+//	printf("-->[0x%x -- %s]\n", 0xDEADBEEF, bit_pattern(0xDEADBEEF).c_str());
+//	printf("-->[%s]\n", bit_pattern(a).c_str());
+//	_sleep(20000);
+//}

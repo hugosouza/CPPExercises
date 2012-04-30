@@ -18,5 +18,16 @@
     <ClCompile Include="..\chapter5.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\chapter6.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\chapter4.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\README">
+      <Filter>Source Files</Filter>
+    </Text>
   </ItemGroup>
 </Project>
