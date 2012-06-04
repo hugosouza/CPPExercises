@@ -36,7 +36,9 @@ Table::Table() {
   }
 }
 
-Table::~Table() {}
+Table::~Table() {
+  printf("Please delete me properly!\n");
+}
 
 int16_t Table::hash(std::string s) {
   uint16_t index = 0;

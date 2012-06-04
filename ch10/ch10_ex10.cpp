@@ -72,7 +72,7 @@ void IntSet::add(int64_t i) {
 
 void IntSet::resize(uint8_t factor) {
   printf("resizing from %d to %d\n", _size, _size*factor);
-  int64_t* temp = new int64_t[_size*2];
+  int64_t* temp = new int64_t[_size*factor];
   memcpy(temp, _list, sizeof(int64_t)*_size);
   delete[] _list;
   _list = temp;
