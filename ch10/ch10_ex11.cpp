@@ -22,10 +22,11 @@ class MathExpr {
   };
 
   enum operator_types {
-    operator_plus,
-    operator_minus,
-    operator_multiply,
-    operator_division
+    operator_unknown,
+    operator_plus     = '+',
+    operator_minus    = '-',
+    operator_multiply = '*',
+    operator_division = '/'
   };
 
   std::string _e;
@@ -40,31 +41,12 @@ class MathExpr {
   bool readToken();
   bool isOperator(const char c);
   void parseExpr();
-  bool isOperatorPlusOrMinus(operator_types);
-  bool isOperatorMulOrDiv(operator_types);
 public:
   MathExpr(std::string expr);
   ~MathExpr() {}
 
   double eval();
   void printError();
-
-  static std::map<unsigned char, operator_types> _char_to_operator;
-  static std::map<operator_types, unsigned char> _operator_to_char;
-};
-
-std::map<unsigned char, MathExpr::operator_types> MathExpr::_char_to_operator = {
-  {'+', operator_plus},
-  {'-', operator_minus},
-  {'*', operator_multiply},
-  {'/', operator_division}
-};
-
-std::map<MathExpr::operator_types, unsigned char> MathExpr::_operator_to_char = {
-  {operator_plus,     '+'},
-  {operator_minus,    '-'},
-  {operator_multiply, '*'},
-  {operator_division, '/'},
 };
 
 MathExpr::MathExpr(std::string expr) :
@@ -85,14 +67,6 @@ bool MathExpr::isOperator(const char c) {
   }
 }
 
-bool MathExpr::isOperatorPlusOrMinus(operator_types o) {
-  return o == operator_plus || o == operator_minus;
-}
-
-bool MathExpr::isOperatorMulOrDiv(operator_types o) {
-  return o == operator_multiply || o == operator_division;
-}
-
 bool MathExpr::readToken() {
   if (_curr_pos == _e.size()) return false;
   token_read_state state = undefined;
@@ -102,18 +76,14 @@ bool MathExpr::readToken() {
 
   while (!done) {
     char c = _e[_curr_pos];
-    //printf("current char [%c]\n", c);
     switch(state) {
       case undefined:
         if (isdigit(c)) {
-          //printf("found start of number, state = number now\n");
           state = reading_number;
           _curr_token_type = operand_token;
         } else if (c == ' ') {
-          //printf("found space, ignoring and advancing c to %d\n", _curr_pos+1);
           _curr_pos++;
         } else if (isOperator(c)) {
-          //printf("Found operator (%c), search done\n", c);
           _curr_pos++;
           _curr_token_type = operator_token;
           tempToken = c;
@@ -128,11 +98,9 @@ bool MathExpr::readToken() {
         break;
       case reading_number:
         if (isdigit(c)) {
-          //printf("Adding digit [%c]\n", c);
           tempToken += c;
           _curr_pos++;
         } else {
-          //printf("Ended number [%s]\n", tempToken.c_str());
           state = undefined;
           done = found = true;
         }
@@ -149,8 +117,7 @@ void MathExpr::parseExpr() {
   token_type previous_token = unknown_token;
   while (readToken()) {
     if (_curr_token_type == operand_token) {
-      if (previous_token != operator_token &&
-          previous_token != unknown_token) {
+      if (previous_token == operand_token) {
         printf("Invalid token found: 2 consecutive operands\n");
         _is_valid = false;
         _error_pos = _curr_pos;
@@ -160,108 +127,93 @@ void MathExpr::parseExpr() {
       _operands.push_back(boost::lexical_cast<double>(_curr_token));
       previous_token = operand_token;
     } else {
-      printf("operator: %s\n", _curr_token.c_str());
-      if (previous_token != operand_token &&
-          previous_token != unknown_token) {
+      if (previous_token == operator_token) {
         printf("Invalid token found: 2 consecutive operators\n");
         _error_pos = _curr_pos;
         _is_valid = false;
         printError();
         return;
       }
-      _operators.push_back(_char_to_operator[_curr_token[0]]);
+      _operators.push_back(operator_types(_curr_token[0]));
       previous_token = operator_token;
     }
   }
 }
 
 double MathExpr::eval() {
-  printf("[%s]\n", _e.c_str());
   if (!_is_valid) {
     printf("Warning: invalid expression\n");
     printError();
-  }
-
-  for (auto i: _operands) {
-    printf("%.06f\n", i);
-  }
-
-  for (auto i: _operators) {
-    printf("%c\n", _operator_to_char[i]);
+    return 0.0;
   }
 
   std::vector<operator_types> t_operators;
   std::vector<double> t_operands;
-
   size_t operator_idx = 0;
   size_t operand_idx = 0;
-  int ii = 1;
 
-  while (operator_idx < _operands.size()-1) {
-    printf("iter[%d]\n", ii++);
-    if (isOperatorPlusOrMinus(_operators[operator_idx])) {
-      printf("storing %.06f and %c\n", _operands[operand_idx],
-             _operator_to_char[_operators[operator_idx]]);
-      t_operands.push_back(_operands[operand_idx++]);
-      t_operators.push_back(_operators[operator_idx++]);
-    } else if (isOperatorMulOrDiv(_operators[operator_idx])) {
-      double s = _operands[operand_idx++];
-      printf("evaluating * or /\n");
-      do {
-        if (operand_idx >= _operands.size()) {
-          printf("Missing operand after [%.06f %c]\n",
-                 _operands[operand_idx-1],
-                 _operator_to_char[_operators[operator_idx]]);
-          return 0.0;
+ while (operator_idx < _operators.size()) {
+    switch (_operators[operator_idx]) {
+      case operator_unknown:
+        printf("Unknown operator found\n");
+        return 0.0;
+      case operator_plus:
+      case operator_minus:
+        t_operands.push_back(_operands[operand_idx++]);
+        if (operator_idx < _operators.size()) {
+          t_operators.push_back(_operators[operator_idx++]);
         }
-        if (_operators[operator_idx] == operator_multiply) {
-          printf("calculating %.06f * %.06f\n", s, _operands[operand_idx]);
-          s *= _operands[operand_idx++];
-        } else if (_operators[operator_idx] == operator_division) {
-          if (_operands[operand_idx]) {
-            printf("calculating %.06f / %.06f\n", s, _operands[operand_idx]);
-            s /= _operands[operand_idx++];
-          } else {
-            printf("Division by zero after [%.06f %c]\n",
-                 _operands[operand_idx-1],
-                 _operators[operator_idx]);
+        break;
+      case operator_multiply:
+      case operator_division:
+        double s = _operands[operand_idx++];
+        do {
+          if (operand_idx >= _operands.size()) {
+            printf("Missing operand after operator %c\n",
+                   _operators[operator_idx]);
             return 0.0;
           }
+          if (_operators[operator_idx] == operator_multiply) {
+            s *= _operands[operand_idx++];
+          } else if (_operators[operator_idx] == operator_division) {
+            if (_operands[operand_idx]) {
+              s /= _operands[operand_idx++];
+            } else {
+              printf("Division by zero detected, leaving\n");
+              return 0.0;
+            }
+          }
+          operator_idx++;
+        } while (_operators[operator_idx] == operator_multiply ||
+                 _operators[operator_idx] == operator_division);
+        t_operands.push_back(s);
+        if (operator_idx < _operators.size()) {
+          t_operators.push_back(_operators[operator_idx++]);
         }
-        operator_idx++;
-      } while (isOperatorMulOrDiv(_operators[operator_idx]));
-      printf("storing %.06f\n", s);
-      t_operands.push_back(s);
-      t_operators.push_back(_operators[operator_idx++]);
+        break;
     }
   }
-  printf("storing %.06f\n", _operands[operand_idx]);
-  t_operands.push_back(_operands[operand_idx]);
-
-  printf("done with * or /\n");
-
-  for (auto i: t_operands) {
-    printf("operand: %.06f\n", i);
-  }
-
-  for (auto i: t_operators) {
-    printf("operator: %c\n", _operator_to_char[i]);
+  if (operand_idx < _operands.size()) {
+    t_operands.push_back(_operands[operand_idx]);
   }
 
   double s = t_operands[0];
-  for (size_t i = 0; i < t_operands.size(); i++) {
-    if (t_operators[i] == operator_plus) {
-      printf("doing %.06f + %.06f\n", s, t_operands[i+1]);
-      s += t_operands[i+1];
-    } else {
-      printf("doing %.06f - %.06f\n", s, t_operands[i+1]);
-      s -= t_operands[i+1];
+  for (size_t i = 0; i < t_operators.size(); i++) {
+    switch (t_operators[i]) {
+      case operator_plus:
+        s += t_operands[i+1];
+        break;
+      case operator_minus:
+        s -= t_operands[i+1];
+        break;
+      default:
+        printf("Invalid or missing operator %c\n", t_operators[i]);
+        break;
     }
   }
+  printf("\n");
 
-  printf("[%s] = %.06f\n", _e.c_str(), s);
-
-  return 0.0;
+  return s;
 }
 
 void MathExpr::printError() {
@@ -273,10 +225,11 @@ void MathExpr::printError() {
 }
 
 int main(int argc, char **argv) {
-  // printf("=====\n");
-  // MathExpr me("10 + +20+30/29**1  ++ + +    a2");
-  // printf("=====\n");
-  MathExpr me2("10 + 20+30/29*1  +    999 * 20/3 * 100");
-  printf("=====\n");
-  me2.eval();
+  if (argc !=2 ) {
+    printf("syntax: %s \"expr\"\n", argv[0]);
+    exit(1);
+  }
+  MathExpr me(argv[1]);
+  double r = me.eval();
+  printf("[%s] = %.06f\n", argv[1], r);
 }
